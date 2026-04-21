@@ -73,6 +73,120 @@
     return new Date(year, month, 0).getDate();
   }
 
+  function getNextOccurrence(event, fromDate) {
+    // For recurring events or events without a specific year, compute next
+    // occurrence on or after fromDate. For events with a year, return that
+    // exact date (may be in the past).
+    if (!event.recurring && event.year) {
+      return new Date(event.year, event.month - 1, event.day);
+    }
+    const from = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+    let candidate = new Date(from.getFullYear(), event.month - 1, event.day);
+    if (candidate < from) {
+      candidate = new Date(from.getFullYear() + 1, event.month - 1, event.day);
+    }
+    return candidate;
+  }
+
+  function getUpcomingEvents(days = 15) {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const end = new Date(start);
+    end.setDate(end.getDate() + days);
+
+    const upcoming = [];
+    state.events.filter(matchesFilters).forEach(e => {
+      const next = getNextOccurrence(e, start);
+      if (next >= start && next <= end) {
+        const diffDays = Math.round((next - start) / 86400000);
+        upcoming.push({ event: e, date: next, daysAway: diffDays });
+      }
+    });
+    upcoming.sort((a, b) => a.date - b.date);
+    return upcoming;
+  }
+
+  function renderUpcomingBanner() {
+    const banner = $("#upcoming-banner");
+    const list = $("#upcoming-list");
+    const countEl = $("#upcoming-count");
+    const upcoming = getUpcomingEvents(15);
+
+    list.innerHTML = "";
+    if (!upcoming.length) {
+      banner.classList.add("hidden");
+      return;
+    }
+
+    banner.classList.remove("hidden");
+    countEl.textContent = upcoming.length;
+
+    upcoming.forEach(({ event, date, daysAway }) => {
+      const li = document.createElement("li");
+      li.className = "upcoming-item";
+      li.tabIndex = 0;
+
+      const dateBox = document.createElement("div");
+      dateBox.className = "upcoming-item-date";
+      dateBox.innerHTML = `<span class="d">${date.getDate()}</span><span class="m">${MONTH_SHORT[date.getMonth()]}</span>`;
+      li.appendChild(dateBox);
+
+      const body = document.createElement("div");
+      body.className = "upcoming-item-body";
+
+      const name = document.createElement("div");
+      name.className = "upcoming-item-name";
+      name.textContent = event.name;
+      body.appendChild(name);
+
+      const meta = document.createElement("div");
+      meta.className = "upcoming-item-meta";
+      const cat = document.createElement("span");
+      cat.className = `event-category c-${event.category}`;
+      cat.textContent = CATEGORY_LABELS[event.category];
+      meta.appendChild(cat);
+
+      if (event.recurring || !event.year) {
+        const age = date.getFullYear() - (event.year || date.getFullYear());
+        if (event.year && age > 0) {
+          const yr = document.createElement("span");
+          yr.textContent = `cumple ${age}`;
+          meta.appendChild(yr);
+        }
+      }
+      body.appendChild(meta);
+
+      li.appendChild(body);
+
+      const badge = document.createElement("span");
+      if (daysAway === 0) {
+        badge.className = "upcoming-badge is-today";
+        badge.textContent = "¡Hoy!";
+      } else if (daysAway === 1) {
+        badge.className = "upcoming-badge is-soon";
+        badge.textContent = "Mañana";
+      } else if (daysAway <= 3) {
+        badge.className = "upcoming-badge is-soon";
+        badge.textContent = `En ${daysAway} días`;
+      } else {
+        badge.className = "upcoming-badge";
+        badge.textContent = `En ${daysAway} días`;
+      }
+      li.appendChild(badge);
+
+      const focusEvent = () => {
+        state.currentMonth = date.getMonth() + 1;
+        state.currentYear = date.getFullYear();
+        renderAll();
+        openDayModal(date.getMonth() + 1, date.getDate(), date.getFullYear());
+      };
+      li.addEventListener("click", focusEvent);
+      li.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); focusEvent(); }
+      });
+    });
+  }
+
   function getEventsForDate(month, day, year) {
     return state.events.filter(e => {
       if (e.month !== month || e.day !== day) return false;
@@ -276,6 +390,7 @@
   function renderAll() {
     renderCalendar();
     renderEventsPanel();
+    renderUpcomingBanner();
     renderAdminUI();
   }
 
