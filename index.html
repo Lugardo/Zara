@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Calendario del grupo: cumpleaños, aniversarios y fechas importantes." />
+  <title>Calendario del Grupo</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">&#10084;</span>
+      <h1>Calendario del Grupo</h1>
+    </div>
+    <nav class="header-actions" aria-label="Acciones principales">
+      <a
+        id="btn-whatsapp"
+        class="btn btn-whatsapp"
+        href="https://wa.me/526671275611?text=Hola%2C%20quiero%20avisar%20para%20agregar%20o%20corregir%20una%20fecha%20en%20el%20calendario%20del%20grupo."
+        target="_blank"
+        rel="noopener"
+      >
+        <span class="btn-icon" aria-hidden="true">&#128241;</span>
+        <span class="btn-label">Avisar para agregar una nueva fecha</span>
+      </a>
+      <button id="btn-admin" class="btn btn-secondary" type="button">
+        <span class="btn-icon" aria-hidden="true">&#128272;</span>
+        <span class="btn-label" id="btn-admin-label">Admin</span>
+      </button>
+      <button id="btn-theme" class="btn btn-ghost" type="button" aria-label="Cambiar tema">
+        <span id="theme-icon" aria-hidden="true">&#9790;</span>
+      </button>
+    </nav>
+  </header>
+
+  <section class="controls" aria-label="Filtros y navegación">
+    <div class="controls-row">
+      <label class="field field-grow">
+        <span class="sr-only">Buscar</span>
+        <input id="input-search" type="search" placeholder="Buscar por nombre o nota..." autocomplete="off" />
+      </label>
+      <label class="field">
+        <span class="sr-only">Categoría</span>
+        <select id="select-category">
+          <option value="all">Todas las categorías</option>
+          <option value="birthday">Cumpleaños</option>
+          <option value="anniversary">Aniversarios</option>
+          <option value="meeting">Reuniones del grupo</option>
+          <option value="other">Otras fechas importantes</option>
+        </select>
+      </label>
+    </div>
+    <div class="controls-row month-nav">
+      <button id="btn-prev" class="btn btn-ghost" type="button" aria-label="Mes anterior">&#8592;</button>
+      <h2 id="month-label" class="month-label">Mes</h2>
+      <button id="btn-next" class="btn btn-ghost" type="button" aria-label="Mes siguiente">&#8594;</button>
+      <button id="btn-today" class="btn btn-ghost" type="button">Hoy</button>
+      <button id="btn-add-event" class="btn btn-primary hidden" type="button">
+        <span aria-hidden="true">+</span> Agregar fecha
+      </button>
+    </div>
+  </section>
+
+  <main class="layout">
+    <section id="calendar" class="calendar card" aria-label="Calendario">
+      <div class="weekdays" aria-hidden="true">
+        <span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span>
+        <span>Vie</span><span>Sáb</span><span>Dom</span>
+      </div>
+      <div id="calendar-grid" class="calendar-grid" role="grid"></div>
+    </section>
+
+    <aside id="events-panel" class="events-panel card" aria-label="Lista de eventos">
+      <h3 id="events-title">Eventos del mes</h3>
+      <ul id="events-list" class="events-list"></ul>
+      <p id="events-empty" class="events-empty hidden">No hay fechas que coincidan con tu búsqueda.</p>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <p class="footer-text">Hecho con <span aria-hidden="true">&#10084;</span> para el grupo de amigos.</p>
+    <div id="admin-tools" class="admin-tools hidden">
+      <button id="btn-export" class="btn btn-ghost" type="button">Exportar JSON</button>
+      <label class="btn btn-ghost" for="input-import">Importar JSON</label>
+      <input id="input-import" type="file" accept="application/json" hidden />
+      <button id="btn-logout" class="btn btn-ghost" type="button">Cerrar sesión admin</button>
+    </div>
+  </footer>
+
+  <!-- Modal: Admin login / set password -->
+  <div id="modal-admin" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-admin-title">
+    <div class="modal-backdrop" data-close-modal="modal-admin"></div>
+    <div class="modal-card">
+      <header class="modal-header">
+        <h3 id="modal-admin-title">Acceso de administrador</h3>
+        <button class="modal-close" data-close-modal="modal-admin" aria-label="Cerrar">&times;</button>
+      </header>
+      <form id="form-admin" class="modal-body">
+        <p id="admin-intro" class="muted">Introduce la contraseña de administrador.</p>
+        <label class="field">
+          <span>Contraseña</span>
+          <input id="input-admin-password" type="password" required minlength="4" autocomplete="current-password" />
+        </label>
+        <label class="field hidden" id="confirm-password-wrap">
+          <span>Confirmar contraseña</span>
+          <input id="input-admin-password-confirm" type="password" minlength="4" autocomplete="new-password" />
+        </label>
+        <p id="admin-error" class="error hidden" role="alert"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close-modal="modal-admin">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="btn-admin-submit">Entrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Event form (add/edit) -->
+  <div id="modal-event" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-event-title">
+    <div class="modal-backdrop" data-close-modal="modal-event"></div>
+    <div class="modal-card">
+      <header class="modal-header">
+        <h3 id="modal-event-title">Agregar fecha</h3>
+        <button class="modal-close" data-close-modal="modal-event" aria-label="Cerrar">&times;</button>
+      </header>
+      <form id="form-event" class="modal-body">
+        <input type="hidden" id="event-id" />
+        <label class="field">
+          <span>Nombre o título</span>
+          <input id="event-name" type="text" required maxlength="80" placeholder="Ej. Cumpleaños de Ana" />
+        </label>
+        <div class="field-row">
+          <label class="field">
+            <span>Día</span>
+            <input id="event-day" type="number" min="1" max="31" required />
+          </label>
+          <label class="field">
+            <span>Mes</span>
+            <select id="event-month" required>
+              <option value="1">Enero</option>
+              <option value="2">Febrero</option>
+              <option value="3">Marzo</option>
+              <option value="4">Abril</option>
+              <option value="5">Mayo</option>
+              <option value="6">Junio</option>
+              <option value="7">Julio</option>
+              <option value="8">Agosto</option>
+              <option value="9">Septiembre</option>
+              <option value="10">Octubre</option>
+              <option value="11">Noviembre</option>
+              <option value="12">Diciembre</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Año (opcional)</span>
+            <input id="event-year" type="number" min="1900" max="2100" placeholder="Si aplica" />
+          </label>
+        </div>
+        <label class="field">
+          <span>Categoría</span>
+          <select id="event-category" required>
+            <option value="birthday">Cumpleaños</option>
+            <option value="anniversary">Aniversario</option>
+            <option value="meeting">Reunión del grupo</option>
+            <option value="other">Otra fecha importante</option>
+          </select>
+        </label>
+        <label class="field checkbox">
+          <input id="event-recurring" type="checkbox" />
+          <span>Se repite cada año</span>
+        </label>
+        <label class="field">
+          <span>Notas (opcional)</span>
+          <textarea id="event-notes" rows="3" maxlength="300" placeholder="Detalles, lugar, etc."></textarea>
+        </label>
+        <p id="event-error" class="error hidden" role="alert"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-danger hidden" id="btn-event-delete">Eliminar</button>
+          <button type="button" class="btn btn-ghost" data-close-modal="modal-event">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Event details (day view) -->
+  <div id="modal-day" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-day-title">
+    <div class="modal-backdrop" data-close-modal="modal-day"></div>
+    <div class="modal-card">
+      <header class="modal-header">
+        <h3 id="modal-day-title">Eventos del día</h3>
+        <button class="modal-close" data-close-modal="modal-day" aria-label="Cerrar">&times;</button>
+      </header>
+      <div class="modal-body">
+        <ul id="day-events-list" class="events-list"></ul>
+        <p id="day-events-empty" class="muted hidden">Sin eventos en este día.</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" data-close-modal="modal-day">Cerrar</button>
+          <button type="button" class="btn btn-primary hidden" id="btn-day-add">+ Agregar en este día</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
